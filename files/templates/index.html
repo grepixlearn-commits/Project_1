@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL Agent — Natural Language Query</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0c10;
+            --surface: #111318;
+            --surface2: #181b22;
+            --border: #1f2330;
+            --accent: #00e5a0;
+            --accent2: #0af;
+            --accent-dim: rgba(0, 229, 160, 0.12);
+            --text: #e8eaf0;
+            --muted: #5a6070;
+            --error: #ff4d6d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--surface);
+        }
+
+        .logo-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        header h1 span {
+            color: var(--accent);
+        }
+
+        .status-bar {
+            margin-left: auto;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .status-pill {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            padding: 0.25rem 0.7rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+
+        .status-pill.ok .dot {
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        .status-pill.ok {
+            color: var(--accent);
+            border-color: rgba(0, 229, 160, 0.3);
+        }
+
+        .status-pill.err .dot {
+            background: var(--error);
+        }
+
+        .status-pill.err {
+            color: var(--error);
+            border-color: rgba(255, 77, 109, 0.3);
+        }
+
+        /* ── LAYOUT ── */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 0;
+        }
+
+        /* ── SIDEBAR ── */
+        aside {
+            border-right: 1px solid var(--border);
+            background: var(--surface);
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+        }
+
+        .table-chip {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .table-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .table-chip .chip-name {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .chip-cols {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--muted);
+            line-height: 1.5;
+            opacity: 0.7;
+        }
+
+        .suggestions-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 1.5rem 0 0.75rem;
+            padding-left: 0.5rem;
+        }
+
+        .suggestion {
+            padding: 0.45rem 0.75rem;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            border-left: 2px solid transparent;
+        }
+
+        .suggestion:hover {
+            color: var(--accent2);
+            border-left-color: var(--accent2);
+            background: rgba(0, 170, 255, 0.06);
+        }
+
+        /* ── MAIN PANEL ── */
+        .panel {
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* ── INPUT AREA ── */
+        .input-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .input-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        textarea {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            font-size: 0.95rem;
+            padding: 0.9rem 1rem;
+            resize: vertical;
+            min-height: 70px;
+            outline: none;
+            transition: border-color 0.2s;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        textarea::placeholder {
+            color: var(--muted);
+        }
+
+        button.run-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.9rem 1.6rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.run-btn:hover {
+            background: #00ffc3;
+            transform: translateY(-1px);
+        }
+
+        button.run-btn:active {
+            transform: translateY(0);
+        }
+
+        button.run-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+
+
+        /* ── RESULTS ── */
+        .results-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .results-header {
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface2);
+        }
+
+        .results-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+        }
+
+        .row-count {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--accent);
+            background: var(--accent-dim);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        thead th {
+            background: var(--surface2);
+            color: var(--muted);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.7rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(31, 35, 48, 0.6);
+            transition: background 0.1s;
+        }
+
+        tbody tr:hover {
+            background: var(--surface2);
+        }
+
+        tbody td {
+            padding: 0.65rem 1rem;
+            color: var(--text);
+            font-size: 0.82rem;
+        }
+
+        tbody td:first-child {
+            color: var(--accent2);
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        /* ── ERROR ── */
+        .error-card {
+            background: rgba(255, 77, 109, 0.07);
+            border: 1px solid rgba(255, 77, 109, 0.25);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--error);
+            display: none;
+            line-height: 1.6;
+        }
+
+        /* ── HISTORY ── */
+        .history-section {
+            display: none;
+        }
+
+        .history-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .history-item {
+            padding: 0.65rem 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--muted);
+            background: var(--surface);
+        }
+
+        .history-item:hover {
+            border-color: var(--accent2);
+            color: var(--text);
+        }
+
+        .history-item .hi-icon {
+            color: var(--accent2);
+            font-size: 0.7rem;
+        }
+
+        /* ── LOADING OVERLAY ── */
+        .loading-state {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .loading-state .big-spinner {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .loading-state p {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .loading-state p span {
+            color: var(--accent);
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+        }
+
+        .empty-state h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+
+        /* scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo-dot"></div>
+        <h1>SQL <span>Agent</span></h1>
+        <div class="status-bar">
+            <div class="status-pill" id="db-status">
+                <div class="dot"></div> DB
+            </div>
+            <div class="status-pill" id="model-status">
+                <div class="dot"></div> Model
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main>
+
+        <!-- SIDEBAR -->
+        <aside>
+            <div class="sidebar-title">Tables</div>
+            <div id="table-list">
+                <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);padding:0.5rem">
+                    Loading…</div>
+            </div>
+
+            <div class="suggestions-title">Quick Queries</div>
+            <div id="suggestions">
+                <div class="suggestion" onclick="setQuestion(this.textContent)">List all cities</div>
+                <div class="suggestion" onclick="setQuestion(this.textContent)">Show all active promo codes</div>
+                <div class="suggestion" onclick="setQuestion(this.textContent)">List all drivers</div>
+                <div class="suggestion" onclick="setQuestion(this.textContent)">Show all users</div>
+                <div class="suggestion" onclick="setQuestion(this.textContent)">Show expired promo codes</div>
+                <div class="suggestion" onclick="setQuestion(this.textContent)">List all trips</div>
+                <div class="suggestion" onclick="setQuestion(this.textContent)">Show all cars</div>
+            </div>
+        </aside>
+
+        <!-- PANEL -->
+        <div class="panel">
+
+            <!-- INPUT -->
+            <div class="input-card">
+                <div class="input-label">Natural Language Query</div>
+                <div class="input-row">
+                    <textarea id="question" placeholder="e.g. Show me all active promo codes with their expiry dates…"
+                        rows="2"></textarea>
+                    <button class="run-btn" id="run-btn" onclick="askQuestion()">
+                        <div class="spinner" id="btn-spinner"></div>
+                        <span id="btn-text">▶ Run</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- LOADING -->
+            <div class="loading-state" id="loading">
+                <div class="big-spinner"></div>
+                <p>Generating SQL with <span>AI model</span>… querying database…</p>
+            </div>
+
+            <!-- ERROR -->
+            <div class="error-card" id="error-card"></div>
+
+            <!-- RESULTS -->
+            <div class="results-card" id="results-card">
+                <div class="results-header">
+                    <span class="results-label">Query Results</span>
+                    <span class="row-count" id="row-count">0 rows</span>
+                </div>
+                <div class="table-wrap">
+                    <table id="results-table">
+                        <thead id="results-head"></thead>
+                        <tbody id="results-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div class="empty-state" id="empty-state">
+                <div class="empty-icon">⬡</div>
+                <h2>Ask anything about your data</h2>
+                <p>Type a natural language question and the AI will generate the SQL and run it for you.</p>
+            </div>
+
+            <!-- HISTORY -->
+            <div class="history-section" id="history-section">
+                <div class="history-title">Recent Queries</div>
+                <div id="history-list"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const history = [];
+
+        // ── HEALTH CHECK ──
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+
+                const dbEl = document.getElementById('db-status');
+                const modelEl = document.getElementById('model-status');
+
+                if (data.database === 'connected') {
+                    dbEl.classList.add('ok'); dbEl.querySelector('.dot').style.background = 'var(--accent)';
+                } else {
+                    dbEl.classList.add('err');
+                }
+                if (data.model === 'loaded') {
+                    modelEl.classList.add('ok'); modelEl.querySelector('.dot').style.background = 'var(--accent)';
+                } else {
+                    modelEl.classList.add('err');
+                }
+            } catch (e) { }
+        }
+
+        // ── LOAD TABLES ──
+        async function loadTables() {
+            try {
+                const res = await fetch('/tables');
+                const data = await res.json();
+                const el = document.getElementById('table-list');
+                el.innerHTML = '';
+                for (const [table, cols] of Object.entries(data)) {
+                    const chip = document.createElement('div');
+                    chip.className = 'table-chip';
+                    const preview = cols.slice(0, 4).join(', ') + (cols.length > 4 ? '…' : '');
+                    chip.innerHTML = `<span class="chip-name">${table}</span><span class="chip-cols">${preview}</span>`;
+                    chip.onclick = () => setQuestion(`List all ${table}`);
+                    el.appendChild(chip);
+                }
+            } catch (e) {
+                document.getElementById('table-list').innerHTML =
+                    '<div style="font-family:monospace;font-size:0.7rem;color:var(--error);padding:0.5rem">DB unavailable</div>';
+            }
+        }
+
+        // ── SET QUESTION ──
+        function setQuestion(q) {
+            document.getElementById('question').value = q;
+            document.getElementById('question').focus();
+        }
+
+        // ── ASK QUESTION ──
+        async function askQuestion() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) return;
+
+            // Reset UI
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('results-card').style.display = 'none';
+            document.getElementById('error-card').style.display = 'none';
+            document.getElementById('loading').style.display = 'flex';
+
+            const btn = document.getElementById('run-btn');
+            const spinner = document.getElementById('btn-spinner');
+            const btnText = document.getElementById('btn-text');
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = 'Running…';
+
+            try {
+                const res = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+
+                document.getElementById('loading').style.display = 'none';
+
+                if (data.error) {
+                    const errEl = document.getElementById('error-card');
+                    errEl.style.display = 'block';
+                    errEl.textContent = '⚠ ' + data.error;
+                    return;
+                }
+
+                // Show Results
+                if (data.columns && data.columns.length > 0) {
+                    const resultsCard = document.getElementById('results-card');
+                    resultsCard.style.display = 'block';
+                    document.getElementById('row-count').textContent = `${data.rows.length} row(s)`;
+
+                    const head = document.getElementById('results-head');
+                    const body = document.getElementById('results-body');
+                    head.innerHTML = '<tr>' + data.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+                    body.innerHTML = data.rows.map(row =>
+                        '<tr>' + row.map((cell, i) =>
+                            `<td>${cell === null ? '<span style="color:var(--muted)">NULL</span>' : cell}</td>`
+                        ).join('') + '</tr>'
+                    ).join('');
+                } else {
+                    const resultsCard = document.getElementById('results-card');
+                    resultsCard.style.display = 'block';
+                    document.getElementById('row-count').textContent = '0 rows';
+                    document.getElementById('results-head').innerHTML = '';
+                    document.getElementById('results-body').innerHTML =
+                        '<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:2rem">No results found.</td></tr>';
+                }
+
+                // History
+                history.unshift({ question });
+                if (history.length > 8) history.pop();
+                renderHistory();
+
+            } catch (e) {
+                document.getElementById('loading').style.display = 'none';
+                const errEl = document.getElementById('error-card');
+                errEl.style.display = 'block';
+                errEl.textContent = '⚠ Network error: ' + e.message;
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = '▶ Run';
+            }
+        }
+
+        // ── HISTORY ──
+        function renderHistory() {
+            if (history.length === 0) return;
+            const section = document.getElementById('history-section');
+            section.style.display = 'block';
+            const list = document.getElementById('history-list');
+            list.innerHTML = history.map(h =>
+                `<div class="history-item" onclick="setQuestion('${h.question.replace(/'/g, "\\'")}')">
+        <span class="hi-icon">◈</span> ${h.question}
+      </div>`
+            ).join('');
+        }
+
+        // ── ENTER KEY ──
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('question').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion(); }
+            });
+            checkHealth();
+            loadTables();
+        });
+    </script>
+</body>
+
+</html>
